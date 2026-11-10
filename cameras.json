@@ -1,0 +1,36 @@
+[
+  {
+    "mac": "F1:38:97:1C:19:24",
+    "name": "GoPro 0802",
+    "nickname": "AIS-18-11"
+  },
+  {
+    "mac": "FF:62:F4:3B:BD:4D",
+    "name": "GoPro 9032",
+    "nickname": "AIS-18-20"
+  },
+  {
+    "mac": "E9:49:FF:36:EB:80",
+    "name": "GoPro 3191",
+    "nickname": "AIS-18-14"
+  },
+  {
+    "mac": "EE:4D:9B:C8:62:FB",
+    "name": "GoPro 1924",
+    "nickname": "AIS-18-21"
+  },
+  {
+    "mac": "C4:3E:FA:48:83:85",
+    "name": "GoPro Camera",
+    "nickname": "AIS-18-06"
+  },
+  {
+    "mac": "D5:B0:46:58:05:A6",
+    "name": "GoPro 5399",
+    "nickname": "AIS-18-17"
+  },
+  {
+    "mac": "E8:27:CA:9D:CD:23",
+    "name": "GoPro 3175"
+  }
+]

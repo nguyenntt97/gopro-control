@@ -1,0 +1,990 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GoPro HERO5 Multi-BLE Controller</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --card-border: #334155;
+      --accent: #0284c7;
+      --accent-hover: #0369a1;
+      --danger: #ef4444;
+      --danger-hover: #dc2626;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: #111827;
+      border-bottom: 1px solid var(--card-border);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    .brand .badge {
+      background: #0369a1;
+      color: #e0f2fe;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 9999px;
+      font-weight: 600;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .ws-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background-color: var(--danger);
+    }
+    .dot.online {
+      background-color: var(--success);
+      box-shadow: 0 0 8px var(--success);
+    }
+
+    /* Master Action Bar */
+    .master-bar {
+      background: #1e293b;
+      border-bottom: 1px solid var(--card-border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+
+    .master-group {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+      color: white;
+      background: #334155;
+    }
+
+    .btn:hover {
+      background: #475569;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+    }
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-danger {
+      background: var(--danger);
+    }
+    .btn-danger:hover {
+      background: var(--danger-hover);
+    }
+
+    .btn-success {
+      background: var(--success);
+    }
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-record-master {
+      background: var(--danger);
+      font-size: 1rem;
+      padding: 0.6rem 1.4rem;
+      box-shadow: 0 0 15px rgba(239, 68, 68, 0.4);
+    }
+    .btn-record-master.recording {
+      background: #475569;
+      box-shadow: none;
+    }
+
+    select, input[type="text"] {
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      color: var(--text);
+      padding: 0.45rem 0.75rem;
+      border-radius: 0.375rem;
+      font-size: 0.875rem;
+      outline: none;
+    }
+
+    select:focus, input[type="text"]:focus {
+      border-color: var(--accent);
+    }
+
+    main {
+      padding: 2rem;
+      flex: 1;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+
+    .camera-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* Camera Card */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 0.5rem;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+      transition: transform 0.15s ease, border-color 0.15s ease;
+    }
+
+    .card.is-recording {
+      border-color: var(--danger);
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+    }
+
+    .card-header {
+      padding: 1rem;
+      background: #182234;
+      border-bottom: 1px solid var(--card-border);
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .camera-title h3 {
+      font-size: 1.05rem;
+      font-weight: 600;
+      color: #fff;
+    }
+    .camera-title span {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      font-family: monospace;
+    }
+
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 0.25rem;
+      font-weight: 600;
+      background: #334155;
+      color: #cbd5e1;
+    }
+    .status-badge.warn {
+      background: rgba(245, 158, 11, 0.18);
+      color: #fbbf24;
+      border: 1px solid rgba(245, 158, 11, 0.35);
+    }
+    .card-error {
+      font-size: 0.78rem;
+      color: #fbbf24;
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 0.375rem;
+      padding: 0.45rem 0.6rem;
+      line-height: 1.35;
+    }
+    #toast {
+      position: fixed;
+      left: 50%;
+      bottom: 1.25rem;
+      transform: translateX(-50%);
+      max-width: min(560px, calc(100vw - 32px));
+      background: #7f1d1d;
+      color: #fee2e2;
+      border: 1px solid #b91c1c;
+      padding: 0.7rem 1rem;
+      border-radius: 0.5rem;
+      font-size: 0.85rem;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+      display: none;
+      z-index: 1000;
+    }
+    #toast.ok { background: #064e3b; color: #d1fae5; border-color: #059669; }
+    .status-badge.connected {
+      background: rgba(16, 185, 129, 0.2);
+      color: #34d399;
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .card-body {
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      flex: 1;
+    }
+
+    .telemetry-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .telemetry-item {
+      flex: 1;
+      background: #0f172a;
+      border: 1px solid var(--card-border);
+      padding: 0.5rem;
+      border-radius: 0.375rem;
+      text-align: center;
+    }
+    .telemetry-item .label {
+      font-size: 0.65rem;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 0.25rem;
+    }
+    .telemetry-item .value {
+      font-size: 0.95rem;
+      font-weight: 700;
+    }
+    .telemetry-item .value.recording {
+      color: var(--danger);
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.5rem;
+    }
+
+    .setting-box label {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-bottom: 0.2rem;
+    }
+    .setting-box select {
+      width: 100%;
+    }
+
+    .card-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      padding-top: 0.5rem;
+      border-top: 1px solid var(--card-border);
+    }
+    .card-actions .btn {
+      flex: 1 1 calc(50% - 0.25rem);
+      padding: 0.4rem;
+      font-size: 0.8rem;
+    }
+
+    /* Modal / Discovery Drawer */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+      visibility: hidden;
+      opacity: 0;
+      transition: all 0.2s ease;
+    }
+    .modal-backdrop.open {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    .modal-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      width: 90%;
+      max-width: 520px;
+      border-radius: 0.5rem;
+      padding: 1.5rem;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+
+    .device-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 250px;
+      overflow-y: auto;
+      margin: 1rem 0;
+    }
+
+    .device-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f172a;
+      padding: 0.75rem;
+      border-radius: 0.375rem;
+      border: 1px solid var(--card-border);
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 4rem 2rem;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent);">
+        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+        <circle cx="12" cy="13" r="4"></circle>
+      </svg>
+      <h1>GoPro HERO5 Multi-BLE Controller</h1>
+      <span class="badge">BLE Direct</span>
+    </div>
+
+    <div class="header-controls">
+      <label style="display:flex; align-items:center; gap:0.4rem; font-size:0.85rem; cursor:pointer;">
+        <input type="checkbox" id="mockToggle" onchange="toggleMockMode(this.checked)">
+        <span>Mock Simulation</span>
+      </label>
+
+      <div class="ws-indicator">
+        <div id="wsDot" class="dot"></div>
+        <span id="wsText">Connecting...</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Master Control Bar -->
+  <div class="master-bar">
+    <div class="master-group">
+      <button id="masterRecordBtn" class="btn btn-record-master" onclick="masterToggleRecord()">
+        ● Record All
+      </button>
+      <button class="btn btn-danger" onclick="masterStopAll()">
+        ■ Stop All
+      </button>
+    </div>
+
+    <div class="master-group" style="margin-left: 0.5rem;">
+      <span style="font-size: 0.8rem; color: var(--text-muted);">Mode:</span>
+      <select id="masterModeSelect" onchange="masterChangeMode(this.value)">
+        <option value="0">Video</option>
+        <option value="1">Photo</option>
+        <option value="2">MultiShot</option>
+      </select>
+    </div>
+
+    <div class="master-group" style="margin-left: 0.5rem;">
+      <span style="font-size: 0.8rem; color: var(--text-muted);">Res:</span>
+      <select id="masterResSelect" onchange="masterChangeSetting(2, this.value)">
+        <option value="1">4K</option>
+        <option value="4">2.7K</option>
+        <option value="7">1440p</option>
+        <option value="9" selected>1080p</option>
+        <option value="12">720p</option>
+      </select>
+    </div>
+
+    <div class="master-group" style="margin-left: auto;">
+      <button class="btn" onclick="syncAllClocks()" title="Aligns all camera timestamps to PC clock">
+        🕒 Sync Clocks
+      </button>
+      <button class="btn" onclick="connectAll()">
+        🔗 Connect All
+      </button>
+      <button class="btn" onclick="sleepAll()" title="Puts cameras to sleep with BLE awake">
+        💤 Sleep All
+      </button>
+      <button class="btn btn-primary" onclick="openScanModal()">
+        🔍 Scan BLE
+      </button>
+    </div>
+  </div>
+
+  <!-- Main Body -->
+  <main>
+    <div class="section-header">
+      <h2 style="font-size: 1.15rem; font-weight: 600;">Active Cameras (<span id="camCount">0</span>)</h2>
+      <button class="btn" onclick="openAddModal()" style="font-size: 0.8rem;">+ Add MAC Manually</button>
+    </div>
+
+    <div id="cameraGrid" class="camera-grid">
+      <!-- Dynamic Camera Cards -->
+    </div>
+
+    <div id="emptyState" class="empty-state" style="display: none;">
+      <h3>No cameras configured yet</h3>
+      <p style="margin-top: 0.5rem;">Click <strong>"Scan BLE"</strong> to discover nearby GoPro HERO5 cameras, or enable <strong>"Mock Simulation"</strong> at top right.</p>
+    </div>
+  </main>
+
+  <!-- Scan Modal -->
+  <div id="scanModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Discover GoPro Cameras (BLE)</h3>
+        <button class="btn" onclick="closeScanModal()">✕</button>
+      </div>
+      <p style="font-size: 0.85rem; color: var(--text-muted);">
+        Make sure the camera is in pairing/app mode: <em>Preferences > Connections > Connect New Device > GoPro App</em>.
+      </p>
+
+      <div style="margin: 1rem 0;">
+        <button id="scanBtn" class="btn btn-primary" onclick="performScan()" style="width: 100%;">
+          Start 5s BLE Scan
+        </button>
+      </div>
+
+      <div id="discoveredList" class="device-list">
+        <!-- Discovered devices -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Manual Add Modal -->
+  <div id="addModal" class="modal-backdrop">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Add GoPro Camera by MAC</h3>
+        <button class="btn" onclick="closeAddModal()">✕</button>
+      </div>
+      <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+        <div>
+          <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Bluetooth MAC Address:</label>
+          <input type="text" id="manualMac" placeholder="DE:71:28:EE:A7:FD" style="width: 100%;">
+        </div>
+        <div>
+          <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">Camera Label / Friendly Name:</label>
+          <input type="text" id="manualName" placeholder="GoPro HERO5 #1" style="width: 100%;">
+        </div>
+        <button class="btn btn-success" onclick="saveManualCamera()" style="margin-top: 0.5rem;">Save & Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" role="status"></div>
+
+  <script>
+    let cameras = {};
+    let isAnyRecording = false;
+    let ws = null;
+
+    // --- WebSocket Management ---
+    function initWebSocket() {
+      const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const url = `${proto}//${window.location.host}/ws`;
+      ws = new WebSocket(url);
+
+      ws.onopen = () => {
+        document.getElementById("wsDot").className = "dot online";
+        document.getElementById("wsText").innerText = "BLE Online";
+      };
+
+      ws.onclose = () => {
+        document.getElementById("wsDot").className = "dot";
+        document.getElementById("wsText").innerText = "Reconnecting...";
+        setTimeout(initWebSocket, 2000);
+      };
+
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          handleWsMessage(msg);
+        } catch (e) {
+          console.error("WS Parse error", e);
+        }
+      };
+    }
+
+    function handleWsMessage(msg) {
+      if (msg.type === "initial_state") {
+        document.getElementById("mockToggle").checked = msg.mock_mode;
+        cameras = {};
+        for (const cam of msg.cameras) {
+          cameras[cam.mac] = cam;
+        }
+        renderCameras();
+      } else if (msg.type === "camera_update") {
+        cameras[msg.camera.mac] = msg.camera;
+        updateOrRenderCard(msg.camera);
+      } else if (msg.type === "camera_removed") {
+        delete cameras[msg.mac];
+        renderCameras();
+      }
+    }
+
+    // --- Render Logic ---
+    function renderCameras() {
+      const grid = document.getElementById("cameraGrid");
+      const empty = document.getElementById("emptyState");
+      const keys = Object.keys(cameras);
+      document.getElementById("camCount").innerText = keys.length;
+
+      if (keys.length === 0) {
+        grid.innerHTML = "";
+        empty.style.display = "block";
+        return;
+      }
+
+      empty.style.display = "none";
+      grid.innerHTML = keys.map(mac => createCardHtml(cameras[mac])).join("");
+      checkMasterRecordingState();
+    }
+
+    function updateOrRenderCard(cam) {
+      const existing = document.getElementById(`card-${cam.mac.replace(/:/g, '')}`);
+      if (!existing) {
+        renderCameras();
+        return;
+      }
+      existing.outerHTML = createCardHtml(cam);
+      checkMasterRecordingState();
+    }
+
+    function checkMasterRecordingState() {
+      isAnyRecording = Object.values(cameras).some(c => c.recording);
+      const masterBtn = document.getElementById("masterRecordBtn");
+      if (isAnyRecording) {
+        masterBtn.innerText = "● Record All (Active)";
+        masterBtn.className = "btn btn-record-master recording";
+      } else {
+        masterBtn.innerText = "● Record All";
+        masterBtn.className = "btn btn-record-master";
+      }
+    }
+
+    function formatSeconds(secs) {
+      const m = Math.floor(secs / 60).toString().padStart(2, '0');
+      const s = (secs % 60).toString().padStart(2, '0');
+      return `${m}:${s}`;
+    }
+
+    function createCardHtml(cam) {
+      const domId = `card-${cam.mac.replace(/:/g, '')}`;
+      const isRec = cam.recording;
+      const isLink = cam.connected;
+      const isConn = cam.connected && cam.ready;   // camera actually answers
+      const badge = isConn ? ['connected', 'online', 'Ready']
+        : isLink ? ['warn', '', 'Not answering']
+        : ['', '', cam.paired ? 'Offline' : 'Offline · not paired'];
+
+      return `
+        <div id="${domId}" class="card ${isRec ? 'is-recording' : ''}">
+          <div class="card-header">
+            <div class="camera-title">
+              <h3 onclick="renameCamera('${cam.mac}')" title="Click to rename" style="cursor:pointer;">${cam.display_name || cam.name} <span style="font-size:0.75em; opacity:0.5;">✎</span></h3>
+              ${cam.nickname ? `<span>${cam.name}</span>` : ''}
+              <span>${cam.mac}</span>
+            </div>
+            <div class="status-badge ${badge[0]}">
+              <span class="dot ${badge[1]}"></span>
+              ${badge[2]}
+            </div>
+          </div>
+          ${cam.last_error ? `<div class="card-error" style="margin: 0.75rem 1rem 0;">⚠ ${cam.last_error}</div>` : ''}
+
+          <div class="card-body">
+            <!-- Telemetry Row -->
+            <div class="telemetry-row">
+              <div class="telemetry-item">
+                <div class="label">Status</div>
+                <div class="value ${isRec ? 'recording' : ''}">
+                  ${isRec ? `REC ${formatSeconds(cam.record_seconds)}` : (isConn ? 'STANDBY' : 'OFF')}
+                </div>
+              </div>
+              <div class="telemetry-item">
+                <div class="label">Battery</div>
+                <div class="value">${cam.battery_level}%</div>
+              </div>
+              <div class="telemetry-item">
+                <div class="label">Free SD</div>
+                <div class="value">${cam.free_gb} GB</div>
+              </div>
+            </div>
+
+            <!-- Mode & Settings Row -->
+            <div class="settings-grid">
+              <div class="setting-box">
+                <label>Mode</label>
+                <select onchange="changeCameraMode('${cam.mac}', this.value)" ${!isConn ? 'disabled' : ''}>
+                  <option value="0" ${cam.mode === 0 ? 'selected' : ''}>Video</option>
+                  <option value="1" ${cam.mode === 1 ? 'selected' : ''}>Photo</option>
+                  <option value="2" ${cam.mode === 2 ? 'selected' : ''}>MultiShot</option>
+                </select>
+              </div>
+
+              <div class="setting-box">
+                <label>Resolution</label>
+                <select onchange="changeCameraSetting('${cam.mac}', 2, this.value)" ${!isConn ? 'disabled' : ''}>
+                  <option value="1" ${cam.resolution === 1 ? 'selected' : ''}>4K</option>
+                  <option value="4" ${cam.resolution === 4 ? 'selected' : ''}>2.7K</option>
+                  <option value="7" ${cam.resolution === 7 ? 'selected' : ''}>1440p</option>
+                  <option value="9" ${cam.resolution === 9 ? 'selected' : ''}>1080p</option>
+                  <option value="12" ${cam.resolution === 12 ? 'selected' : ''}>720p</option>
+                </select>
+              </div>
+
+              <div class="setting-box">
+                <label>FPS</label>
+                <select onchange="changeCameraSetting('${cam.mac}', 3, this.value)" ${!isConn ? 'disabled' : ''}>
+                  <option value="0" ${cam.fps === 0 ? 'selected' : ''}>240fps</option>
+                  <option value="1" ${cam.fps === 1 ? 'selected' : ''}>120fps</option>
+                  <option value="5" ${cam.fps === 5 ? 'selected' : ''}>60fps</option>
+                  <option value="8" ${cam.fps === 8 ? 'selected' : ''}>30fps</option>
+                  <option value="9" ${cam.fps === 9 ? 'selected' : ''}>25fps</option>
+                </select>
+              </div>
+
+              <div class="setting-box">
+                <label>FOV</label>
+                <select onchange="changeCameraSetting('${cam.mac}', 4, this.value)" ${!isConn ? 'disabled' : ''}>
+                  <option value="0" ${cam.fov === 0 ? 'selected' : ''}>Wide</option>
+                  <option value="1" ${cam.fov === 1 ? 'selected' : ''}>Medium</option>
+                  <option value="2" ${cam.fov === 2 ? 'selected' : ''}>Narrow</option>
+                  <option value="3" ${cam.fov === 3 ? 'selected' : ''}>SuperView</option>
+                  <option value="4" ${cam.fov === 4 ? 'selected' : ''}>Linear</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Card Actions -->
+            <div class="card-actions">
+              ${isRec
+                ? `<button class="btn btn-danger" onclick="toggleCameraRecord('${cam.mac}', false)" ${!isConn ? 'disabled' : ''}>■ Stop</button>`
+                : `<button class="btn btn-danger" onclick="toggleCameraRecord('${cam.mac}', true)" ${!isConn ? 'disabled' : ''}>● Record</button>`
+              }
+              <button class="btn" onclick="locateCamera('${cam.mac}')" title="Beep for 3 seconds" ${!isConn ? 'disabled' : ''}>🔔 Beep</button>
+              <button class="btn" onclick="tagCamera('${cam.mac}')" title="Add HiLight Tag" ${!isConn ? 'disabled' : ''}>🏷️ Tag</button>
+              <button class="btn" onclick="toggleWifi('${cam.mac}', ${!cam.wifi_on})" ${!isConn ? 'disabled' : ''}>
+                📶 ${cam.wifi_on ? 'WiFi Off' : 'WiFi On'}
+              </button>
+              ${isLink
+                ? `<button class="btn" onclick="disconnectCamera('${cam.mac}')">Disconnect</button>`
+                : `<button class="btn btn-primary" onclick="connectCamera('${cam.mac}')">Connect</button>`
+              }
+              ${!cam.paired
+                ? `<button class="btn btn-success" onclick="pairCamera('${cam.mac}', this, false)" title="Camera must be on Connect New Device > GoPro App">🔗 Pair</button>`
+                : !isConn
+                  ? `<button class="btn" onclick="pairCamera('${cam.mac}', this, true)" title="Delete the stored pairing and pair again (only after resetting the camera)">🔗 Re-pair</button>`
+                  : ''
+              }
+              <button class="btn" onclick="unregisterCamera('${cam.mac}')" style="color: #f87171;" title="Remove Camera">✕ Remove</button>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // --- Actions ---
+    async function apiPost(endpoint, data = {}) {
+      try {
+        const res = await fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data)
+        });
+        const body = await res.json();
+        if (!res.ok || body.status === "error") {
+          showToast(body.error || body.detail || `Request failed (${res.status})`);
+        } else if (body.results && Object.values(body.results).some(v => v === false)) {
+          const failed = Object.entries(body.results).filter(([, v]) => v === false)
+            .map(([mac]) => cameras[mac] ? cameras[mac].name : mac);
+          showToast(`No answer from: ${failed.join(", ")}`);
+        }
+        return body;
+      } catch (e) {
+        console.error("API error", e);
+        showToast("Server not reachable");
+      }
+    }
+
+    let toastTimer = null;
+    function showToast(text, ok = false) {
+      const t = document.getElementById("toast");
+      t.textContent = text;
+      t.className = ok ? "ok" : "";
+      t.style.display = "block";
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => { t.style.display = "none"; }, 6000);
+    }
+
+    async function renameCamera(mac) {
+      const cam = cameras[mac];
+      const n = prompt("Name for this camera (leave empty to use the camera's own name):", cam.nickname || "");
+      if (n === null) return;
+      await apiPost(`/api/cameras/${mac}/rename`, { nickname: n });
+    }
+
+    async function pairCamera(mac, btn, force) {
+      const msg = force
+        ? "Re-pair deletes the stored pairing for this camera and pairs again.\nOnly do this if the camera was reset.\n\nPut the camera on Connect New Device > GoPro App, then press OK."
+        : "Put the camera on Connect New Device > GoPro App, then press OK. Pairing takes up to 30 s.";
+      if (!confirm(msg)) return;
+      if (btn) { btn.disabled = true; btn.innerText = "Pairing…"; }
+      const r = await apiPost(`/api/cameras/${mac}/pair${force ? "?force=true" : ""}`);
+      if (r && r.status === "ok") showToast("Paired and connected", true);
+      if (btn) { btn.disabled = false; btn.innerText = "🔗 Pair"; }
+    }
+
+    function masterToggleRecord() {
+      apiPost("/api/cameras/command", {
+        command: "shutter",
+        target: "all",
+        params: { record: !isAnyRecording }
+      });
+    }
+
+    function masterStopAll() {
+      apiPost("/api/cameras/command", {
+        command: "shutter",
+        target: "all",
+        params: { record: false }
+      });
+    }
+
+    function masterChangeMode(mode) {
+      apiPost("/api/cameras/command", {
+        command: "mode",
+        target: "all",
+        params: { mode: parseInt(mode) }
+      });
+    }
+
+    function masterChangeSetting(settingId, value) {
+      apiPost("/api/cameras/setting", {
+        setting_id: parseInt(settingId),
+        value: parseInt(value),
+        target: "all"
+      });
+    }
+
+    function syncAllClocks() {
+      apiPost("/api/cameras/command", { command: "sync_time", target: "all" });
+      alert("Clock sync command sent to all connected cameras!");
+    }
+
+    function connectAll() {
+      apiPost("/api/cameras/connect_all");
+    }
+
+    function sleepAll() {
+      apiPost("/api/cameras/command", { command: "sleep", target: "all" });
+    }
+
+    function toggleCameraRecord(mac, record) {
+      apiPost("/api/cameras/command", {
+        command: "shutter",
+        target: mac,
+        params: { record: record }
+      });
+    }
+
+    function changeCameraMode(mac, mode) {
+      apiPost("/api/cameras/command", {
+        command: "mode",
+        target: mac,
+        params: { mode: parseInt(mode) }
+      });
+    }
+
+    function changeCameraSetting(mac, settingId, value) {
+      apiPost("/api/cameras/setting", {
+        setting_id: parseInt(settingId),
+        value: parseInt(value),
+        target: mac
+      });
+    }
+
+    function locateCamera(mac) {
+      apiPost("/api/cameras/command", {
+        command: "locate",
+        target: mac,
+        params: { beep: true, seconds: 3 }
+      });
+    }
+
+    function tagCamera(mac) {
+      apiPost("/api/cameras/command", { command: "tag", target: mac });
+    }
+
+    function toggleWifi(mac, enable) {
+      apiPost("/api/cameras/command", {
+        command: "wifi",
+        target: mac,
+        params: { enable: enable }
+      });
+    }
+
+    function connectCamera(mac) {
+      apiPost(`/api/cameras/${mac}/connect`);
+    }
+
+    function disconnectCamera(mac) {
+      apiPost(`/api/cameras/${mac}/disconnect`);
+    }
+
+    function unregisterCamera(mac) {
+      if (confirm(`Remove camera ${mac}?`)) {
+        apiPost("/api/cameras/unregister", { mac: mac });
+      }
+    }
+
+    function toggleMockMode(enabled) {
+      apiPost("/api/mock_mode", { enabled: enabled });
+    }
+
+    // --- Modals ---
+    function openScanModal() {
+      document.getElementById("scanModal").classList.add("open");
+    }
+    function closeScanModal() {
+      document.getElementById("scanModal").classList.remove("open");
+    }
+
+    async function performScan() {
+      const btn = document.getElementById("scanBtn");
+      const list = document.getElementById("discoveredList");
+      btn.innerText = "Scanning nearby BLE (5s)...";
+      btn.disabled = true;
+      list.innerHTML = `<div style="text-align:center; padding:1rem; color:var(--text-muted);">Listening for GoPro advertisements...</div>`;
+
+      const data = await apiPost("/api/cameras/scan", { timeout: 5.0 });
+      btn.innerText = "Start 5s BLE Scan";
+      btn.disabled = false;
+
+      if (!data || !data.devices || data.devices.length === 0) {
+        list.innerHTML = `<div style="text-align:center; padding:1rem; color:var(--text-muted);">No GoPro devices found. Make sure camera is in "GoPro App" pairing mode.</div>`;
+        return;
+      }
+
+      list.innerHTML = data.devices.map(d => `
+        <div class="device-item">
+          <div>
+            <strong>${d.name}</strong><br>
+            <span style="font-size:0.75rem; color:var(--text-muted); font-family:monospace;">${d.mac} (${d.rssi} dBm)</span><br>
+            <span style="font-size:0.75rem; font-weight:600; color:${d.status === 'pairing mode' ? '#34d399' : d.status === 'asleep' ? '#94a3b8' : '#fbbf24'};">${d.status === 'pairing mode' ? '● Pairing mode, ready to pair' : d.status === 'asleep' ? '○ Asleep, not in pairing mode' : '● ' + (d.status || 'unknown')}</span>
+          </div>
+          <button class="btn btn-success" onclick="registerDiscovered('${d.mac}', '${d.name}')">+ Add</button>
+        </div>
+      `).join("");
+    }
+
+    async function registerDiscovered(mac, name) {
+      const reg = await apiPost("/api/cameras/register", { mac: mac, name: name });
+      if (reg && reg.camera && !reg.camera.paired) {
+        closeScanModal();
+        await pairCamera(mac, null, false);
+        return;
+      }
+      await apiPost(`/api/cameras/${mac}/connect`);
+      closeScanModal();
+    }
+
+    function openAddModal() {
+      document.getElementById("addModal").classList.add("open");
+    }
+    function closeAddModal() {
+      document.getElementById("addModal").classList.remove("open");
+    }
+
+    async function saveManualCamera() {
+      const mac = document.getElementById("manualMac").value.trim();
+      const name = document.getElementById("manualName").value.trim() || "GoPro HERO5";
+      if (!mac) {
+        alert("Please enter a MAC address");
+        return;
+      }
+      await apiPost("/api/cameras/register", { mac: mac, name: name });
+      await apiPost(`/api/cameras/${mac}/connect`);
+      closeAddModal();
+    }
+
+    // Initialize
+    window.addEventListener("DOMContentLoaded", () => {
+      initWebSocket();
+    });
+  </script>
+</body>
+</html>
